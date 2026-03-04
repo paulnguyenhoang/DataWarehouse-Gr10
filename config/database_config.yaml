@@ -1,0 +1,33 @@
+database:
+  type: postgresql
+  host: localhost
+  port: 5432
+  name: olist_datawarehouse
+  schemas:
+    staging: staging
+    dimensions: dimensions
+    facts: facts
+    marts: marts
+
+connection:
+  pool_size: 10
+  max_overflow: 20
+  pool_timeout: 30
+  pool_recycle: 3600
+
+etl:
+  batch_size: 1000
+  max_retries: 3
+  timeout_seconds: 300
+  log_level: INFO
+  
+data_quality:
+  max_missing_percentage: 10
+  validate_order_sequence: true
+  enforce_referential_integrity: true
+
+business_rules:
+  order_item_id:
+    description: "Sequential number identifying items in the same order"
+    validation: "Must start from 1 and be sequential (1,2,3...) within each order_id"
+    auto_fix: true

@@ -1,0 +1,387 @@
+# ============================================================================
+# OLIST DATA WAREHOUSE PROJECT - GITIGNORE
+# ============================================================================
+!.gitkeep
+# Exception: Keep .gitkeep files to maintain folder structure
+!**/.gitkeep
+TUTORIALS.md
+# ============================================================================
+# DATA FILES (EXCLUDE ALL DATA)
+# ============================================================================
+# Raw data files
+data/*.csv
+data/*.xlsx
+data/*.json
+data/*.parquet
+data/*.txt
+
+# Processed data
+processed_data/
+staging_data/
+output/
+exports/
+
+# Database backups and dumps
+# *.sql
+*.dump
+*.backup
+*.bak
+
+
+
+# ============================================================================
+# SENSITIVE CONFIGURATION FILES
+# ============================================================================
+# Environment variables and credentials
+.env
+.env.local
+.env.development
+.env.production
+.env.staging
+*.env
+
+# Configuration files with secrets
+config.ini
+config.yaml
+config.yml
+secrets.json
+credentials.json
+database.conf
+
+# SSH keys and certificates
+*.key
+*.pem
+*.crt
+*.cert
+*.p12
+*.pfx
+
+# ============================================================================
+# LOGS AND RUNTIME FILES
+# ============================================================================
+# Log files
+logs/
+*.log
+log/
+*.log.*
+log_*.txt
+
+# Runtime and temporary files
+tmp/
+temp/
+cache/
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# Process IDs
+*.pid
+
+# ============================================================================
+# PYTHON SPECIFIC
+# ============================================================================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+.ENV/
+.env/
+virtualenv/
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# PEP 582
+__pypackages__/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# ============================================================================
+# DATABASE SPECIFIC
+# ============================================================================
+# SQLite databases
+*.sqlite
+*.sqlite3
+*.db
+
+# PostgreSQL
+*.pgdump
+*.psql
+
+# Database connection files
+.pgpass
+.my.cnf
+
+# ============================================================================
+# IDE AND EDITOR FILES
+# ============================================================================
+# Visual Studio Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# PyCharm
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# ============================================================================
+# OPERATING SYSTEM FILES
+# ============================================================================
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ============================================================================
+# JUPYTER NOTEBOOKS
+# ============================================================================
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Jupyter execution artifacts
+.jupyter/
+
+# ============================================================================
+# DATA SCIENCE AND ML FILES
+# ============================================================================
+# Model files
+*.pkl
+*.pickle
+*.joblib
+*.model
+*.h5
+*.hdf5
+
+# Experiment tracking
+mlruns/
+.mlflow/
+wandb/
+
+# Data science artifacts
+*.feather
+*.parquet
+
+# ============================================================================
+# DOCUMENTATION BUILD FILES
+# ============================================================================
+# Sphinx documentation
+docs/_build/
+doc/_build/
+_build/
+
+# MkDocs
+site/
+
+# ============================================================================
+# PACKAGE MANAGER FILES
+# ============================================================================
+# Node.js (if using any JS tools)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ============================================================================
+# COMPRESSION AND ARCHIVES
+# ============================================================================
+*.zip
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# ============================================================================
+# CUSTOM PROJECT EXCLUSIONS
+# ============================================================================
+# ETL pipeline outputs
+output/
+results/
+reports/
+
+# Performance test results
+benchmarks/
+performance_tests/
+
+# Error dumps and debug files
+error_dumps/
+debug/
+*.dump
+
+# Large files that shouldn't be in version control
+*.large
+*.big
+
+# Backup files
+*.backup
+*_backup.*
+backup_*
+
+# ============================================================================
+# KEEP THESE FILES (NEGATION PATTERNS)
+# ============================================================================
+# Always keep .gitkeep files to maintain empty directory structure
+
+
+# Keep essential documentation
+!README.md
+!CHANGELOG.md
+!LICENSE
+!CONTRIBUTING.md
+
+# Keep configuration templates (without actual secrets)
+!config.template.*
+!.env.example
+!.env.template
+
+# Keep SQL schema files (structure only, no data)
+!sql/create_*.sql
+!sql/schema_*.sql
+!sql/migrations/*.sql
+
+# Keep essential project files
+!requirements.txt
+!setup.py
+!pyproject.toml
+!Pipfile
+
+# ============================================================================
+# END OF GITIGNORE
+# ============================================================================
