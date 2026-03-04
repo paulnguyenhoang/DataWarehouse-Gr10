@@ -7,6 +7,7 @@ A complete data warehouse solution for Olist Brazilian e-commerce dataset with P
 This project implements a star schema data warehouse for analyzing e-commerce transactions, customer behavior, product performance, and business metrics from the Olist dataset.
 
 ### Key Features
+
 - **Complete ETL Pipeline** with staging, dimensions, and facts
 - **Star Schema Design** optimized for analytical queries with foreign key constraints
 - **Data Quality Validation** with order_item_id sequential numbering
@@ -16,17 +17,21 @@ This project implements a star schema data warehouse for analyzing e-commerce tr
 ## 🚀 Quick Start Guide
 
 ### Prerequisites
+
 - PostgreSQL 13+ installed and running
 - Python 3.8+
 - Olist dataset CSV files in `data/` folder
 
 ### Step 1: Install Python Dependencies
+
 ```bash
 pip install pandas numpy psycopg2-binary python-dotenv matplotlib seaborn jupyter
 ```
 
 ### Step 2: Configure Database Connection
+
 Create `src/.env` file with your PostgreSQL credentials:
+
 ```bash
 DB_HOST=localhost
 DB_PORT=5432
@@ -36,13 +41,16 @@ DB_PASSWORD=your_password
 ```
 
 ### Step 3: Create Data Warehouse Schema
+
 Run the schema creation script to set up all tables, constraints, and foreign keys:
+
 ```bash
 # Create database and schema with foreign key constraints
 psql -U postgres -d postgres -f sql/create_datawarehouse_postgresql.sql
 ```
 
 This script will:
+
 - ✅ Create database `olist_datawarehouse`
 - ✅ Create schemas: `staging`, `dimensions`, `facts`, `marts`
 - ✅ Create all dimension tables with SERIAL primary keys
@@ -52,60 +60,65 @@ This script will:
 - ✅ Create helper functions for business logic
 
 ### Step 4: Run ETL Pipeline
+
 Execute the ETL pipeline to populate the data warehouse:
+
 ```bash
 # Load data from CSV files into the data warehouse
 python src/etl_pipeline_postgresql.py
 ```
 
 The ETL pipeline will:
+
 1. **Extract**: Load CSV files into staging tables
 2. **Transform**: Process and clean data for dimensions and facts
 3. **Load**: Populate dimension and fact tables with resolved foreign keys
 4. **Validate**: Ensure referential integrity is maintained
 
 ### Step 5: Verify Data Warehouse
+
 ```bash
 # Check data warehouse status
 psql -U postgres -d olist_datawarehouse -c "
-SELECT 
+SELECT
     'Dimensions' as layer,
     COUNT(*) as table_count
-FROM information_schema.tables 
+FROM information_schema.tables
 WHERE table_schema = 'dimensions'
 UNION ALL
-SELECT 
+SELECT
     'Facts' as layer,
     COUNT(*) as table_count
-FROM information_schema.tables 
+FROM information_schema.tables
 WHERE table_schema = 'facts';
 "
 
 # Verify foreign key relationships
 psql -U postgres -d olist_datawarehouse -c "
-SELECT 
+SELECT
     tc.table_name,
     tc.constraint_name,
     kcu.column_name,
     ccu.table_name AS references_table
-FROM information_schema.table_constraints AS tc 
+FROM information_schema.table_constraints AS tc
 JOIN information_schema.key_column_usage AS kcu
     ON tc.constraint_name = kcu.constraint_name
 JOIN information_schema.constraint_column_usage AS ccu
     ON ccu.constraint_name = tc.constraint_name
-WHERE tc.constraint_type = 'FOREIGN KEY' 
+WHERE tc.constraint_type = 'FOREIGN KEY'
     AND tc.table_schema = 'facts'
 ORDER BY tc.table_name;
 "
 ```
 
 ### Step 6: Generate ERD in pgAdmin
+
 1. Open pgAdmin
 2. Navigate to `olist_datawarehouse` database
 3. Right-click → **Generate ERD**
 4. All tables and relationships will be visualized
 
-## 📁 Project Structure
+## 📁 Project Structures
 
 ```
 CO4031/
@@ -133,6 +146,7 @@ CO4031/
 ## 🗃️ Database Schema
 
 ### Data Warehouse Architecture
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    STAGING LAYER                            │
@@ -173,6 +187,7 @@ CO4031/
 ```
 
 ### Dimension Tables (with SERIAL surrogate keys)
+
 - **dim_customer** (Type 1 SCD) - Customer demographics and location
 - **dim_product** (Type 2 SCD) - Product catalog with category translations
 - **dim_seller** (Type 1 SCD) - Seller information and location
@@ -180,12 +195,15 @@ CO4031/
 - **dim_order_status** (Type 1 SCD) - Order lifecycle and delivery metrics
 
 ### Fact Tables (with foreign key constraints)
+
 - **fact_order_items** - Order line items (one record per item)
 - **fact_payments** - Payment transactions
 - **fact_reviews** - Customer reviews and ratings
 
 ### Foreign Key Relationships
+
 All fact tables have enforced foreign key constraints:
+
 - `customer_sk` → `dim_customer(customer_sk)`
 - `product_sk` → `dim_product(product_sk)`
 - `seller_sk` → `dim_seller(seller_sk)`
@@ -204,17 +222,17 @@ All fact tables have enforced foreign key constraints:
 
 ```sql
 -- Monthly Revenue Trends
-SELECT 
-    year_month, 
-    total_revenue, 
+SELECT
+    year_month,
+    total_revenue,
     total_orders,
     avg_order_value
 FROM marts.agg_monthly_sales
 ORDER BY year_month DESC;
 
 -- Top Product Categories by Revenue
-SELECT 
-    p.product_category_english, 
+SELECT
+    p.product_category_english,
     COUNT(DISTINCT f.order_id) as total_orders,
     SUM(f.total_item_value) as revenue,
     AVG(f.total_item_value) as avg_order_value
@@ -225,8 +243,8 @@ GROUP BY p.product_category_english
 ORDER BY revenue DESC
 LIMIT 10;
 
--- Geographic Sales Distribution  
-SELECT 
+-- Geographic Sales Distribution
+SELECT
     c.customer_state,
     c.customer_region,
     COUNT(DISTINCT f.order_id) as total_orders,
@@ -238,7 +256,7 @@ GROUP BY c.customer_state, c.customer_region
 ORDER BY revenue DESC;
 
 -- Delivery Performance Analysis
-SELECT 
+SELECT
     os.delivery_performance_category,
     COUNT(*) as order_count,
     AVG(os.total_delivery_days) as avg_delivery_days,
@@ -248,7 +266,7 @@ GROUP BY os.delivery_performance_category
 ORDER BY order_count DESC;
 
 -- Customer Satisfaction by Product Category
-SELECT 
+SELECT
     p.product_category_english,
     COUNT(*) as review_count,
     AVG(r.review_score) as avg_rating,
@@ -265,6 +283,7 @@ ORDER BY avg_rating DESC;
 ## 📈 Expected Results
 
 After successful ETL execution:
+
 - **~99,441 customers** across Brazil
 - **~32,951 products** in 73 categories
 - **~3,095 sellers** distributed geographically
@@ -276,6 +295,7 @@ After successful ETL execution:
 ## 🔧 Troubleshooting
 
 ### Issue: Database Connection Failed
+
 ```bash
 # Check PostgreSQL status
 pg_ctl status
@@ -288,10 +308,11 @@ psql -U postgres -c "SELECT version();"
 ```
 
 ### Issue: Foreign Key Constraint Violations
+
 ```bash
 # Check for orphaned records
 psql -U postgres -d olist_datawarehouse -c "
-SELECT 
+SELECT
     'fact_order_items' as table_name,
     COUNT(*) as orphaned_records
 FROM facts.fact_order_items foi
@@ -305,6 +326,7 @@ python src/etl_pipeline_postgresql.py
 ```
 
 ### Issue: Missing Data Files
+
 ```bash
 # Verify all required CSV files are present
 ls -la data/*.csv
@@ -321,6 +343,7 @@ ls -la data/*.csv
 ```
 
 ### Issue: ETL Pipeline Errors
+
 ```bash
 # Check ETL logs for detailed error messages
 cat logs/etl_execution_*.log | grep ERROR
@@ -337,6 +360,7 @@ cat logs/etl_execution_*.log | grep ERROR
 ### Connecting BI Tools
 
 **Power BI**
+
 ```
 Data Source: PostgreSQL
 Server: localhost:5432
@@ -345,6 +369,7 @@ Authentication: Database credentials from .env
 ```
 
 **Tableau**
+
 ```
 Connect to: PostgreSQL
 Server: localhost
@@ -353,6 +378,7 @@ Database: olist_datawarehouse
 ```
 
 **Metabase**
+
 ```
 Database type: PostgreSQL
 Host: localhost
@@ -361,6 +387,7 @@ Database name: olist_datawarehouse
 ```
 
 ### Pre-built Views for Dashboards
+
 - Use `marts.agg_monthly_sales` for time-series analysis
 - Use `marts.agg_product_performance` for product analytics
 - Join fact and dimension tables for custom analysis
@@ -368,7 +395,7 @@ Database name: olist_datawarehouse
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create feature branch (`git checkout -b feature/improvement`)  
+2. Create feature branch (`git checkout -b feature/improvement`)
 3. Commit changes (`git commit -am 'Add enhancement'`)
 4. Push to branch (`git push origin feature/improvement`)
 5. Create Pull Request
