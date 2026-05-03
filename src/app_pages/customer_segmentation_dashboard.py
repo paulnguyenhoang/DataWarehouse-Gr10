@@ -21,7 +21,18 @@ from pipeline.customer_segmentation import CustomerSegmentation
 def load_segmentation_data():
     """Load segmentation results from CSV"""
     try:
-        df = pd.read_csv('outputs/customer_segments.csv')
+        # Resolve absolute path to the root outputs folder
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        root_dir = os.path.dirname(os.path.dirname(current_dir))
+        file_path = os.path.join(root_dir, 'outputs', 'customer_segments.csv')
+        
+        # Fallback for relative reads
+        if not os.path.exists(file_path):
+            file_path = 'outputs/customer_segments.csv'
+            if not os.path.exists(file_path):
+                file_path = '../outputs/customer_segments.csv'
+                
+        df = pd.read_csv(file_path)
         return df
     except FileNotFoundError:
         st.warning("⚠️ Segmentation data not found. Please run the pipeline first.")
@@ -103,20 +114,40 @@ def plot_rfm_distribution(df):
 
 def plot_cluster_pca(df):
     """Plot PCA visualization of clusters"""
-    st.subheader("🎯 Customer Segments (PCA Visualization)")
+    st.subheader("🎯 Customer Segments (Behavioral Mapping)")
+    
+    st.markdown("""
+    **Understanding this plot:** 
+    This scatter plot uses an algorithm (PCA) to combine multiple customer metrics (Recency, Frequency, Monetary value) into a 2D behavior map. 
+    - **Points close to each other** represent customers with similar purchasing behaviors.
+    - **Different colors** represent the distinct customer segments.
+    """)
+    
+    # Create a categorical label for clusters to ensure all clusters are distinctly colored
+    df = df.copy()
+    df['Cluster'] = 'Segment ' + df['kmeans_cluster'].astype(str)
+    
+    # If segment labels exist, append them to the cluster ID for a more descriptive legend
+    if 'segment_label' in df.columns:
+        # Mapping dict to get the most common label per cluster
+        label_map = df.groupby('kmeans_cluster')['segment_label'].agg(lambda x: pd.Series.mode(x)[0]).to_dict()
+        df['Cluster'] = df['kmeans_cluster'].map(lambda x: f"Segment {x} ({label_map.get(x, '')})")
     
     fig = px.scatter(
         df,
         x='pca_1',
         y='pca_2',
-        color='kmeans_cluster',
+        color='Cluster',
         hover_data=['customer_unique_id', 'recency_days', 'frequency_orders', 'monetary_value'],
-        title='Customer Segments in 2D Space (PCA)',
-        labels={'pca_1': 'First Principal Component', 'pca_2': 'Second Principal Component'},
-        color_continuous_scale='viridis'
+        title='Customer Segments Mapped by Behavior',
+        labels={
+            'pca_1': 'Behavioral Dimension 1 (PCA 1)', 
+            'pca_2': 'Behavioral Dimension 2 (PCA 2)'
+        },
+        color_discrete_sequence=px.colors.qualitative.Prism
     )
     
-    fig.update_traces(marker=dict(size=8, line=dict(width=0.5, color='white')))
+    fig.update_traces(marker=dict(size=7, line=dict(width=0.3, color='white'), opacity=0.8))
     fig.update_layout(height=600)
     
     st.plotly_chart(fig, use_container_width=True)

@@ -81,30 +81,42 @@ def show():
     # Create year-month string for better display
     df_sorted['date_label'] = df_sorted['year'].astype(str) + '-' + df_sorted['month'].astype(str).str.zfill(2)
     
+    latest_month_label = f"{df.iloc[0]['month_name']} {int(df.iloc[0]['year'])}"
+
+    def format_currency_short(value):
+        if value >= 1_000_000_000:
+            return f"R$ {value / 1_000_000_000:.2f}B"
+        if value >= 1_000_000:
+            return f"R$ {value / 1_000_000:.2f}M"
+        if value >= 1_000:
+            return f"R$ {value / 1_000:.2f}K"
+        return f"R$ {value:,.2f}"
+
     # Key metrics
-    st.subheader("🎯 Key Metrics Summary")
+    st.subheader(f"🎯 Key Metrics Summary ({latest_month_label})")
+    st.caption(f"Latest month: {latest_month_label}")
     
     col1, col2, col3, col4, col5 = st.columns(5)
     
     with col1:
         total_orders = df['total_orders'].sum()
         st.metric("Total Orders", f"{total_orders:,.0f}", 
-                 delta=f"{df.iloc[0]['total_orders']:,.0f} this month")
+            delta=f"{df.iloc[0]['total_orders']:,.0f} this month")
     
     with col2:
         total_revenue = df['total_revenue'].sum()
-        st.metric("Total Revenue", f"R$ {total_revenue:,.2f}", 
-                 delta=f"R$ {df.iloc[0]['total_revenue']:,.2f} this month")
+        st.metric("Total Revenue", format_currency_short(total_revenue), 
+            delta=f"R$ {df.iloc[0]['total_revenue']:,.2f} this month")
     
     with col3:
         avg_order_value = df['avg_order_value'].mean()
         st.metric("Avg Order Value", f"R$ {avg_order_value:,.2f}",
-                 delta=f"{((df.iloc[0]['avg_order_value'] / avg_order_value - 1) * 100):.1f}%" if avg_order_value > 0 else "N/A")
+            delta=f"{((df.iloc[0]['avg_order_value'] / avg_order_value - 1) * 100):.1f}%" if avg_order_value > 0 else "N/A")
     
     with col4:
         unique_customers = df['unique_customers'].sum()
         st.metric("Unique Customers", f"{unique_customers:,.0f}",
-                 delta=f"{df.iloc[0]['unique_customers']:,.0f} this month")
+            delta=f"{df.iloc[0]['unique_customers']:,.0f} this month")
     
     with col5:
         unique_products = df['unique_products'].max()
@@ -284,12 +296,15 @@ def show():
     
     # Data table
     st.subheader("📋 Detailed Monthly Data")
-    
-    display_columns = ['year_month', 'total_orders', 'total_items', 'total_revenue', 
+
+    table_df = df.copy()
+    table_df['year_month'] = table_df['year'].astype(str) + '-' + table_df['month'].astype(str).str.zfill(2)
+
+    display_columns = ['year_month', 'total_orders', 'total_items', 'total_revenue',
                        'avg_order_value', 'unique_customers', 'unique_products', 'unique_states']
     
     st.dataframe(
-        df.sort_values('year_month', ascending=False)[display_columns],
+        table_df.sort_values('year_month', ascending=False)[display_columns],
         use_container_width=True,
         hide_index=True
     )

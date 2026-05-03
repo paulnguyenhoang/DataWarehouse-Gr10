@@ -112,7 +112,7 @@ def show():
             min_value=10,
             max_value=50,
             value=20,
-            step=5
+            step=1
         )
     
     with col2:
@@ -121,12 +121,44 @@ def show():
             min_value=0.0,
             max_value=5.0,
             value=0.0,
-            step=0.5
+            step=0.1
         )
     
     # Filter data
     df_filtered = df[(df['revenue_rank'] <= selected_rank) & (df['avg_review_score'] >= min_rating)]
-    
+
+    # Detailed Product Table
+    st.subheader("📋 Top Products Details")
+
+    display_df = df_filtered[[
+        'revenue_rank', 'product_category_english', 'last_12_months_revenue',
+        'last_12_months_orders', 'avg_price', 'avg_review_score', 'total_reviews'
+    ]].rename(columns={
+        'revenue_rank': 'Rank',
+        'product_category_english': 'Product',
+        'last_12_months_revenue': 'Revenue (R$)',
+        'last_12_months_orders': 'Orders',
+        'avg_price': 'Avg Price (R$)',
+        'avg_review_score': 'Rating',
+        'total_reviews': 'Reviews'
+    })
+
+    # Format numeric columns
+    display_df['Revenue (R$)'] = display_df['Revenue (R$)'].apply(lambda x: f"R$ {x:,.2f}")
+    display_df['Avg Price (R$)'] = display_df['Avg Price (R$)'].apply(lambda x: f"R$ {x:,.2f}")
+    display_df['Rating'] = display_df['Rating'].apply(lambda x: f"⭐ {x:.2f}")
+
+    table_row_height = 35
+    table_header_height = 35
+    table_height = min(500, table_header_height + table_row_height * max(len(display_df), 1))
+
+    st.dataframe(
+        display_df.sort_values('Rank'),
+        use_container_width=True,
+        hide_index=True,
+        height=table_height
+    )
+
     # Top Products by Revenue
     st.subheader("💰 Top Products by Revenue")
     
@@ -145,7 +177,8 @@ def show():
             colorbar=dict(title="Avg Rating")
         ),
         text=[f"R$ {x:,.0f}" for x in df_top['last_12_months_revenue']],
-        textposition='outside',
+        textposition='inside',
+        insidetextanchor='middle',
         hovertemplate="<b>%{y}</b><br>Revenue: R$ %{x:,.2f}<br>Rating: %{marker.color:.2f}/5.0<extra></extra>"
     ))
     
@@ -173,12 +206,18 @@ def show():
             x='last_12_months_orders',
             y='product_category_english',
             orientation='h',
+            text='last_12_months_orders',
             color='avg_review_score',
             color_continuous_scale='Viridis',
             title="Top 10 Products by Order Count",
             labels={'last_12_months_orders': 'Orders', 'product_category_english': 'Product'}
         )
         
+        fig_orders.update_traces(
+            textposition='inside',
+            insidetextanchor='middle'
+        )
+
         fig_orders.update_layout(
             height=400,
             template='plotly_white',
@@ -276,30 +315,3 @@ def show():
         
         st.plotly_chart(fig_bubble, use_container_width=True)
     
-    # Detailed Product Table
-    st.subheader("📋 Top Products Details")
-    
-    display_df = df_filtered[[
-        'revenue_rank', 'product_category_english', 'last_12_months_revenue',
-        'last_12_months_orders', 'avg_price', 'avg_review_score', 'total_reviews'
-    ]].rename(columns={
-        'revenue_rank': 'Rank',
-        'product_category_english': 'Product',
-        'last_12_months_revenue': 'Revenue (R$)',
-        'last_12_months_orders': 'Orders',
-        'avg_price': 'Avg Price (R$)',
-        'avg_review_score': 'Rating',
-        'total_reviews': 'Reviews'
-    })
-    
-    # Format numeric columns
-    display_df['Revenue (R$)'] = display_df['Revenue (R$)'].apply(lambda x: f"R$ {x:,.2f}")
-    display_df['Avg Price (R$)'] = display_df['Avg Price (R$)'].apply(lambda x: f"R$ {x:,.2f}")
-    display_df['Rating'] = display_df['Rating'].apply(lambda x: f"⭐ {x:.2f}")
-    
-    st.dataframe(
-        display_df.sort_values('Rank'),
-        use_container_width=True,
-        hide_index=True,
-        height=500
-    )

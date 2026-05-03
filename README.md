@@ -65,7 +65,7 @@ Execute the ETL pipeline to populate the data warehouse:
 
 ```bash
 # Load data from CSV files into the data warehouse
-python src/etl_pipeline_postgresql.py
+python src/pipeline/etl_pipeline_postgresql.py
 ```
 
 The ETL pipeline will:
@@ -115,8 +115,15 @@ ORDER BY tc.table_name;
 
 1. Open pgAdmin
 2. Navigate to `olist_datawarehouse` database
-3. Right-click → **Generate ERD**
+3. Right-click → **ERD For Database**
 4. All tables and relationships will be visualized
+
+### Step 7: Run the Dashboard
+
+```bash
+cd src
+streamlit run dashboard_main.py
+```
 
 ## 📁 Project Structures
 

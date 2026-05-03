@@ -114,24 +114,30 @@ class CustomerSegmentation:
         ),
         customer_reviews AS (
             SELECT 
-                fr.customer_sk,
+                dc.customer_unique_id,
                 AVG(fr.review_score) as avg_review_score,
                 COUNT(fr.review_id) as total_reviews
             FROM facts.fact_reviews fr
-            GROUP BY fr.customer_sk
+            JOIN dimensions.dim_customer dc ON fr.customer_sk = dc.customer_sk
+            GROUP BY dc.customer_unique_id
+        ),
+        global_max_date AS (
+            SELECT MAX(order_purchase_timestamp)::date as db_max_date
+            FROM dimensions.dim_order_status
+            WHERE order_status = 'delivered'
         ),
         rfm_metrics AS (
             SELECT 
-                co.customer_sk,
+                MAX(co.customer_sk) as customer_sk,
                 co.customer_unique_id,
-                co.customer_state,
-                co.customer_city,
-                co.customer_region,
+                MAX(co.customer_state) as customer_state,
+                MAX(co.customer_city) as customer_city,
+                MAX(co.customer_region) as customer_region,
                 
-                -- Recency: Days since last purchase
-                EXTRACT(DAY FROM CURRENT_DATE - MAX(co.order_purchase_timestamp)) as recency_days,
+                -- Recency: Days since last purchase from the latest date in the dataset
+                ((SELECT db_max_date FROM global_max_date) - MAX(co.order_purchase_timestamp)::date) as recency_days,
                 
-                -- Frequency: Total number of orders
+                -- Frequency: Total number of distinct orders
                 COUNT(DISTINCT co.order_id) as frequency_orders,
                 
                 -- Monetary: Total spending
@@ -146,22 +152,16 @@ class CustomerSegmentation:
                 -- Time-based features
                 MIN(co.order_purchase_timestamp) as first_purchase_date,
                 MAX(co.order_purchase_timestamp) as last_purchase_date,
-                EXTRACT(DAY FROM MAX(co.order_purchase_timestamp) - MIN(co.order_purchase_timestamp)) as customer_lifetime_days,
+                (MAX(co.order_purchase_timestamp)::date - MIN(co.order_purchase_timestamp)::date) as customer_lifetime_days,
                 
                 -- Customer satisfaction
-                COALESCE(cr.avg_review_score, 3.0) as avg_review_score,
-                COALESCE(cr.total_reviews, 0) as total_reviews
+                COALESCE(MAX(cr.avg_review_score), 3.0) as avg_review_score,
+                COALESCE(MAX(cr.total_reviews), 0) as total_reviews
                 
             FROM customer_orders co
-            LEFT JOIN customer_reviews cr ON co.customer_sk = cr.customer_sk
+            LEFT JOIN customer_reviews cr ON co.customer_unique_id = cr.customer_unique_id
             GROUP BY 
-                co.customer_sk,
-                co.customer_unique_id,
-                co.customer_state,
-                co.customer_city,
-                co.customer_region,
-                cr.avg_review_score,
-                cr.total_reviews
+                co.customer_unique_id
         )
         SELECT 
             *,
@@ -302,9 +302,29 @@ class CustomerSegmentation:
             print(f"  k={k}: Inertia={kmeans.inertia_:.2f}, Silhouette={silhouette_scores[-1]:.3f}")
         
         # Find optimal k based on highest silhouette score
-        self.optimal_k = k_range[np.argmax(silhouette_scores)]
+        # However, k=2 often groups ~98% of customers into one cluster which is not useful for business.
+        # We'll enforce a minimum of k=3 or manually select the elbow point if automated selection is desired,
+        # but to ensure useful business segmentation, we'll ignore k=2 if there are other good peaks.
+        # We can penalize k=2 or just find max silhouette among k >= 3.
         
-        print(f"\n✅ Optimal k = {self.optimal_k} (Silhouette Score: {max(silhouette_scores):.3f})")
+        # If the highest silhouette is at k=2, check if k=3 or k=4 are also reasonably high (e.g. > 0.3)
+        best_k_idx = np.argmax(silhouette_scores)
+        self.optimal_k = k_range[best_k_idx]
+        
+        # Override if optimal_k is 2 to enforce more meaningful business segments
+        if self.optimal_k == 2 and max_k >= 4:
+            # We prefer a manageable number of segments (like 3, 4, or 5) for business
+            # rather than jumping straight to 8.
+            business_k_limit = min(5, max_k)
+            alt_slice = silhouette_scores[1:business_k_limit] # Indexes for k=3 to k=5
+            alt_best_idx = np.argmax(alt_slice) + 1
+            
+            if silhouette_scores[alt_best_idx] >= 0.3:
+                print(f"  Note: k=2 gives the highest silhouette mathematically, but creates imbalanced segments.")
+                print(f"  Overriding to k={k_range[alt_best_idx]} for better business segment granularity.")
+                self.optimal_k = k_range[alt_best_idx]
+        
+        print(f"\n✅ Optimal k = {self.optimal_k} (Silhouette Score: {silhouette_scores[self.optimal_k - 2]:.3f})")
         
         # Plot elbow curve and silhouette scores
         self._plot_optimal_k(k_range, inertias, silhouette_scores)
@@ -486,21 +506,26 @@ class CustomerSegmentation:
             axes[0].legend()
         
         # DBSCAN visualization
-        scatter2 = axes[1].scatter(
-            self.rfm_data['pca_1'],
-            self.rfm_data['pca_2'],
-            c=self.rfm_data['dbscan_cluster'],
-            cmap='plasma',
-            s=50,
-            alpha=0.6,
-            edgecolors='w',
-            linewidth=0.5
-        )
-        axes[1].set_xlabel('First Principal Component', fontsize=12)
-        axes[1].set_ylabel('Second Principal Component', fontsize=12)
-        axes[1].set_title('DBSCAN Clustering', fontsize=14, fontweight='bold')
-        axes[1].grid(True, alpha=0.3)
-        plt.colorbar(scatter2, ax=axes[1], label='Cluster')
+        if 'dbscan_cluster' in self.rfm_data.columns:
+            scatter2 = axes[1].scatter(
+                self.rfm_data['pca_1'],
+                self.rfm_data['pca_2'],
+                c=self.rfm_data['dbscan_cluster'],
+                cmap='plasma',
+                s=50,
+                alpha=0.6,
+                edgecolors='w',
+                linewidth=0.5
+            )
+            axes[1].set_xlabel('First Principal Component', fontsize=12)
+            axes[1].set_ylabel('Second Principal Component', fontsize=12)
+            axes[1].set_title('DBSCAN Clustering', fontsize=14, fontweight='bold')
+            axes[1].grid(True, alpha=0.3)
+            plt.colorbar(scatter2, ax=axes[1], label='Cluster')
+        else:
+            axes[1].text(0.5, 0.5, 'DBSCAN clustering skipped', 
+                        ha='center', va='center', fontsize=14, color='gray')
+            axes[1].set_axis_off()
         
         plt.tight_layout()
         plt.savefig('outputs/customer_segmentation_pca.png', dpi=300, bbox_inches='tight')
@@ -550,18 +575,16 @@ class CustomerSegmentation:
             avg_frequency = cluster_data['frequency_orders'].mean()
             avg_monetary = cluster_data['monetary_value'].mean()
             
-            # Simple labeling logic
-            if avg_recency < 60 and avg_frequency > 3 and avg_monetary > 500:
+            # Labeling logic tuned for Olist dataset's long recency times
+            if avg_frequency >= 2 and avg_monetary > 400:
                 label = "🌟 Champions (VIP)"
-            elif avg_frequency > 2 and avg_monetary > 300:
+            elif avg_frequency >= 1.5:
                 label = "💎 Loyal Customers"
-            elif avg_recency < 90 and avg_frequency <= 2:
-                label = "🌱 Potential Loyalists"
-            elif avg_recency < 60 and avg_frequency == 1:
-                label = "🆕 New Customers"
-            elif avg_recency > 180:
+            elif avg_monetary > 250 and avg_recency < 365:
+                label = "🛍️ High-Value Occasional"
+            elif avg_recency > 400:
                 label = "😴 Lost Customers"
-            elif avg_recency > 90:
+            elif avg_recency > 300:
                 label = "⚠️  At Risk"
             else:
                 label = "📊 Standard Customers"
@@ -705,9 +728,13 @@ class CustomerSegmentation:
             'recency_days', 'frequency_orders', 'monetary_value',
             'avg_order_value', 'avg_review_score', 'customer_lifetime_days',
             'rfm_score', 'customer_value',
-            'kmeans_cluster', 'dbscan_cluster', 'segment_label',
+            'kmeans_cluster', 'segment_label',
             'pca_1', 'pca_2'
         ]
+        
+        # Add dbscan_cluster if it exists
+        if 'dbscan_cluster' in self.rfm_data.columns:
+            output_cols.insert(-2, 'dbscan_cluster')
         
         self.rfm_data[output_cols].to_csv(output_path, index=False)
         print(f"✅ Results saved successfully!")
@@ -746,8 +773,8 @@ class CustomerSegmentation:
         # Step 6: Fit K-Means
         self.fit_kmeans()
         
-        # Step 7: Fit DBSCAN
-        self.fit_dbscan(eps=0.8, min_samples=10)
+        # Step 7: Fit DBSCAN (Skipped due to performance issues)
+        # self.fit_dbscan(eps=0.8, min_samples=10)
         
         # Step 8: Apply PCA
         self.apply_pca()
