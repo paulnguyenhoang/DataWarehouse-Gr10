@@ -50,7 +50,7 @@ def fetch_product_performance():
         app.volume_rank
     FROM marts.agg_product_performance app
     JOIN dimensions.dim_product dp ON app.product_sk = dp.product_sk
-    WHERE app.revenue_rank <= 50
+    WHERE app.revenue_rank <= 51
     ORDER BY app.revenue_rank ASC
     """
     
@@ -58,6 +58,16 @@ def fetch_product_performance():
         conn = get_db_connection()
         df = pd.read_sql_query(query, conn)
         conn.close()
+        
+        # Drop missing product categories instead of showing NaN/Unknown
+        df = df.dropna(subset=['product_category_english', 'product_category_name'])
+        # Also filter out string representations of NaN in case they were imported as text
+        df = df[~df['product_category_english'].astype(str).str.lower().isin(['nan', 'null', 'none', 'unknown', ''])]
+        
+        # Keep top 50 after removing invalid categories, then re-rank
+        df = df.sort_values('revenue_rank').head(50).reset_index(drop=True)
+        df['revenue_rank'] = df.index + 1
+        
         return df
     except Exception as e:
         st.error(f"Failed to fetch data: {e}")
