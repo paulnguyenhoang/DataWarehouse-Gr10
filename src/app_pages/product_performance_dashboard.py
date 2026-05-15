@@ -141,11 +141,12 @@ def show():
     st.subheader("📋 Top Products Details")
 
     display_df = df_filtered[[
-        'revenue_rank', 'product_category_english', 'last_12_months_revenue',
+        'revenue_rank', 'product_id', 'product_category_english', 'last_12_months_revenue',
         'last_12_months_orders', 'avg_price', 'avg_review_score', 'total_reviews'
     ]].rename(columns={
         'revenue_rank': 'Rank',
-        'product_category_english': 'Product',
+        'product_id': 'Product ID',
+        'product_category_english': 'Category',
         'last_12_months_revenue': 'Revenue (R$)',
         'last_12_months_orders': 'Orders',
         'avg_price': 'Avg Price (R$)',
@@ -186,10 +187,11 @@ def show():
             showscale=True,
             colorbar=dict(title="Avg Rating")
         ),
+        customdata=df_top['product_id'],
         text=[f"R$ {x:,.0f}" for x in df_top['last_12_months_revenue']],
         textposition='inside',
         insidetextanchor='middle',
-        hovertemplate="<b>%{y}</b><br>Revenue: R$ %{x:,.2f}<br>Rating: %{marker.color:.2f}/5.0<extra></extra>"
+        hovertemplate="<b>%{y}</b><br>Product ID: %{customdata}<br>Revenue: R$ %{x:,.2f}<br>Rating: %{marker.color:.2f}/5.0<extra></extra>"
     ))
     
     fig_revenue.update_layout(
@@ -220,7 +222,8 @@ def show():
             color='avg_review_score',
             color_continuous_scale='Viridis',
             title="Top 10 Products by Order Count",
-            labels={'last_12_months_orders': 'Orders', 'product_category_english': 'Product'}
+            labels={'last_12_months_orders': 'Orders', 'product_category_english': 'Product'},
+            hover_data={'product_id': True}
         )
         
         fig_orders.update_traces(
@@ -247,7 +250,7 @@ def show():
             y='avg_review_score',
             size='last_12_months_orders',
             color='last_12_months_revenue',
-            hover_data=['product_category_english'],
+            hover_data=['product_category_english', 'product_id'],
             color_continuous_scale='Viridis',
             title="Product Price vs Customer Rating",
             labels={'avg_price': 'Average Price (R$)', 'avg_review_score': 'Average Rating'},
@@ -311,7 +314,8 @@ def show():
                 line=dict(width=1, color='white')
             ),
             text=df_filtered['product_category_english'],
-            hovertemplate="<b>%{text}</b><br>Orders: %{x:,.0f}<br>Revenue/Order: R$ %{y:,.2f}<extra></extra>"
+            customdata=df_filtered['product_id'],
+            hovertemplate="<b>%{text}</b><br>Product ID: %{customdata}<br>Orders: %{x:,.0f}<br>Revenue/Order: R$ %{y:,.2f}<extra></extra>"
         ))
         
         fig_bubble.update_layout(
