@@ -34,6 +34,9 @@ st.markdown("""
         font-weight: bold;
         margin-bottom: 20px;
     }
+    section[data-testid="stSidebar"] {
+        background-color: #f7f7f9;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -90,9 +93,15 @@ with st.sidebar:
         menu_icon="cast",
         default_index=0,
         styles={
-            "container": {"padding": "0!important", "background-color": "#333333"},
-            "icon": {"color": "#1f77b4", "font-size": "20px"},
-            "nav-link": {"font-size": "16px", "text-align": "left", "margin": "0px", "--hover-color": "#e0e0e0"},
+            "container": {"padding": "0!important", "background-color": "#f7f7f9"},
+            "icon": {"color": "#2563eb", "font-size": "20px"},
+            "nav-link": {
+                "font-size": "16px",
+                "text-align": "left",
+                "margin": "0px",
+                "color": "#1f2937",
+                "--hover-color": "#e5e7eb"
+            },
             "nav-link-selected": {"background-color": "#27ae60", "color": "#ffffff"},
         }
     )
